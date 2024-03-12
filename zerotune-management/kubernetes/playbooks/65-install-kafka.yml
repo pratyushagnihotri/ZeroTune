@@ -1,0 +1,52 @@
+- hosts: master
+  tasks:
+    - name: get all nodes
+      shell: |
+              kubectl get nodes --no-headers -o custom-columns=':metadata.name'
+      register: k8s_nodes
+
+    - name: Print all nodes. First is controlpane node, second is kafka producer and all others are taskmanagers
+      debug:
+        msg: "{{ k8s_nodes.stdout_lines }}"
+
+    - name: add label to kafka producer node
+      kubernetes.core.k8s:
+        state: patched
+        kind: Node
+        name: "{{ k8s_nodes.stdout_lines[1] }}"
+        definition:
+          metadata:
+            labels:
+              pgf.kafka: "yes"
+              pgf.kafkaproducer: "yes"
+              pgf.zookeeper: "yes"
+
+    - name: Setup Zookeeper Service
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../kafka/zookeeper-service.yaml') | from_yaml }}"
+
+    - name: Setup Zookeeper Deployment
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../kafka/zookeeper-deployment.yaml') | from_yaml }}"
+
+    - name: Setup Kafka Service
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../kafka/kafka-service.yaml') | from_yaml }}"
+
+    - name: Setup Kafka Deployment
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../kafka/kafka-deployment.yaml') | from_yaml }}"
+
+    - name: Setup Kafka Producer
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../kafka/kafkaproducer-deployment.yaml') | from_yaml }}"

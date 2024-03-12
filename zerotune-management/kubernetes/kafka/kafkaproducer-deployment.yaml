@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+namespace: plangeneratorflink-namespace
+metadata:
+  labels:
+    pgf.kafkaproducer: 'yes'
+  name: kafkaproducer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pgf.kafkaproducer: 'yes'
+  template:
+    metadata:
+      labels:
+        pgf.kafkaproducer: 'yes'
+    spec:
+      containers:
+      - image: yourDockerRegistryUsername/kafka-data-producer:1.0
+        name: kafkaproducer
+        env:
+          - name: NUM_RECORDS
+            value: "1000000000000"
+          - name: RECORD_SIZE
+            value: "1"
+          - name: SERVER_IP
+            value: kafka
+          - name: SERVER_PORT
+            value: "9092"
+          - name: THROUGHPUT
+            value: "5000"
+          - name: TOPIC
+            value: op-test

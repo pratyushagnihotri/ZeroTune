@@ -1,0 +1,67 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Prepare experiments",
+            "type": "python",
+            "request": "launch",
+            "program": "learning/preprocessing/prepare_experiments.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--experiment_path",
+                "/home/yourUserName/ZeroTune/zerotune-experiments/actual_used_training_sets/unseen_extrapolations/cluster_size/1_workers",
+                //"--align_size",
+                //"auto"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Run Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Python: Training",
+            "type": "python",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--training_data",
+                "res/training_data",
+                "--mode",
+                "train",
+                "--metric",
+                "latency",
+                //"--no_joins"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Testing",
+            "type": "python",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--training_data",
+                "/home/yourUserName/ZeroTune/zerotune-experiments/actual_used_training_sets/train_rulebased_template1+2+3/training_data",
+                "--test_data",
+                "/home/yourUserName/ZeroTune/zerotune-experiments/actual_used_training_sets/unseen_synthetic_test_data/aligned_all_test_data",
+                "--mode",
+                "test",
+                "--metric",
+                "throughput",
+                //"--no_joins"
+            ],
+            "justMyCode": true
+        }
+    ]
+}

@@ -1,0 +1,90 @@
+- hosts: masters
+  tasks:
+    # - name: get all nodes
+    #   shell: |
+    #           kubectl get nodes --no-headers -o custom-columns=':metadata.name'
+    #   register: k8s_nodes
+
+    # - name: Print all nodes. Second one is dashboard node.
+    #   debug:
+    #     msg: "{{ k8s_nodes.stdout_lines }}"
+
+    - name: add label to dashboard node
+      kubernetes.core.k8s:
+        state: patched
+        kind: Node
+        name: "{{ hostvars[groups['manager'][0]]['alternative_hostname'] }}"
+        definition:
+          metadata:
+            labels:
+              pgf.k8sDashboard: "yes"
+
+    - name: Download k8s dashboard deployment file
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+        dest: ~/k8s-dashboard.yaml
+        mode: '0664'
+    
+    - name: add pgf.k8sDashobard as nodeSelector
+      shell: |
+              sed -i 's/"kubernetes.io\/os": linux/"kubernetes.io\/os": linux\n        "pgf.k8sDashboard": "yes"/' k8s-dashboard.yaml
+        
+    - name: Apply k8s-dashboard deployment file to cluster
+      kubernetes.core.k8s:
+        state: present
+        src: ~/k8s-dashboard.yaml
+
+    - name: patch k8s-dashboard port setting
+      kubernetes.core.k8s:
+        api_version: v1
+        state: patched
+        kind: Service
+        name: kubernetes-dashboard
+        namespace: kubernetes-dashboard
+        definition:
+          apiVersion: v1
+          kind: Service
+          spec:
+            type: NodePort
+            ports:
+              - nodePort: 32000
+                port: 443
+                protocol: TCP
+                targetPort: 8443
+
+    - name: create serviceAccount
+      kubernetes.core.k8s:
+        api_version: v1
+        state: present
+        kind: ServiceAccount
+        namespace: kubernetes-dashboard
+        definition:
+          metadata:
+            name: admin-user
+            namespace: kubernetes-dashboard
+
+    - name: create cluster role binding
+      kubernetes.core.k8s:
+        api_version: v1
+        state: present
+        namespace: kubernetes-dashboard
+        kind: ClusterRoleBinding
+        definition:
+          metadata:
+            name: admin-user
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: cluster-admin
+          subjects:
+          - kind: ServiceAccount
+            name: admin-user
+            namespace: kubernetes-dashboard
+
+    - name: Get the k8s-dashboard access token
+      shell: kubectl -n kubernetes-dashboard create token admin-user
+      register: kubernetes_dashboard_token
+
+    - name: Print k8s-dashboard access token
+      debug:
+        msg: "{{ kubernetes_dashboard_token.stdout }}"

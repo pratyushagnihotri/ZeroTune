@@ -1,0 +1,35 @@
+- hosts: masters
+  tasks:
+    - name: If necessary delete already existing flink directory
+      file:
+        state: absent
+        path: "/users/{{ username }}/flink/"
+
+    - name: Copy flink source to master node
+      synchronize:
+        src: ~/ZeroTune/flink-observation/build-target/
+        dest: "/users/{{ username }}/flink"
+
+    - name: If necessary delete already existing PlanGeneratorFlink file
+      file:
+        state: absent
+        path: "/users/{{ username }}/flink/lib/plangeneratorflink-1.0-SNAPSHOT.jar"
+
+    - name: Copy PlanGeneratorFlink to master node
+      synchronize:
+        src: ~/ZeroTune/zerotune-plan-generation/target/plangeneratorflink-1.0-SNAPSHOT.jar
+        dest: "/users/{{ username }}/flink/lib/"
+
+    - name: Delete possibly already existing plangeneratorflink-cluster
+      kubernetes.core.k8s:
+        state: absent
+        kind: Deployment
+        name: plangeneratorflink-cluster
+        namespace: plangeneratorflink-namespace
+        definition:
+          metadata:
+            name: plangeneratorflink-cluster
+            namespace: plangeneratorflink-namespace
+
+    - name: Start Flink
+      shell: "~/flink/bin/kubernetes-session.sh  -Dkubernetes.jobmanager.node-selector=pgf.type:jm -Dkubernetes.taskmanager.node-selector=pgf.type:tm -Dkubernetes.container.image={{ dockerImage }}:{{ dockerFlinkVersion }} -Dkubernetes.container.image.pull-secrets=regcred -Dkubernetes.cluster-id=plangeneratorflink-cluster     -Dkubernetes.jobmanager.service-account=flink-service-account -Dkubernetes.rest-service.exposed.type=NodePort -Dkubernetes.namespace=plangeneratorflink-namespace -Dkubernetes.config.file=/users/{{ username }}/.kube/config"

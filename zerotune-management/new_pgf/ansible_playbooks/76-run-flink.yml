@@ -1,0 +1,15 @@
+- hosts: masters
+  tasks:
+    - name: Delete possibly already existing plangeneratorflink-cluster
+      kubernetes.core.k8s:
+        state: absent
+        kind: Deployment
+        name: plangeneratorflink-cluster
+        namespace: plangeneratorflink-namespace
+        definition:
+          metadata:
+            name: plangeneratorflink-cluster
+            namespace: plangeneratorflink-namespace    
+    - name: Start Flink
+      shell: |
+              ~/flink/bin/kubernetes-session.sh  -Dkubernetes.jobmanager.node-selector=pgf.type:jm -Dkubernetes.taskmanager.node-selector=pgf.type:tm -Dkubernetes.container.image={{ registry_username }}/{{ docker_image_name }}:{{ docker_image_tag }} -Dkubernetes.container.image.pull-secrets=regcred -Dkubernetes.cluster-id=plangeneratorflink-cluster     -Dkubernetes.jobmanager.service-account=flink-service-account -Dkubernetes.rest-service.exposed.type=NodePort -Dkubernetes.namespace=plangeneratorflink-namespace -Dkubernetes.config.file=/users/{{ ansible_user }}/.kube/config

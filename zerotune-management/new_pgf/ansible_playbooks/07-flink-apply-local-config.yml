@@ -1,0 +1,21 @@
+- hosts: localhost
+  tasks:
+    - name: Add debugger to local Flink config
+      shell: 
+        cmd: "sed -i 's/.*#historyserver.archive.fs.refresh-interval: 10000.*/env.java.opts.taskmanager: \"-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -Dlog4j.debug\"/' {{ local_main_directory }}/flink-observation/build-target/conf/flink-conf.yaml"
+        chdir: "{{ local_main_directory }}/flink-observation/build-target/"
+
+    - name: Set numberOfTaskSlots to 30 in local Flink config
+      shell: 
+        cmd: "sed -i 's/.*taskmanager.numberOfTaskSlots: 1.*/taskmanager.numberOfTaskSlots: 30/' {{ local_main_directory }}/flink-observation/build-target/conf/flink-conf.yaml"
+        chdir: "{{ local_main_directory }}/flink-observation/build-target/"
+    
+    - name: Set rest servic binding to 0.0.0.0 to allow access from host in local Flink config
+      shell: 
+        cmd: "sed -i 's/.*rest.bind-address: localhost.*/rest.bind-address: 0.0.0.0/' {{ local_main_directory }}/flink-observation/build-target/conf/flink-conf.yaml"
+        chdir: "{{ local_main_directory }}/flink-observation/build-target/"
+    
+    - name: Set taskmanager memory to 2500m in local Flink config
+      shell: 
+        cmd: "sed -i 's/.*taskmanager.memory.process.size: 1728m.*/taskmanager.memory.process.size: 2500m/' {{ local_main_directory }}/flink-observation/build-target/conf/flink-conf.yaml"
+        chdir: "{{ local_main_directory }}/flink-observation/build-target/"

@@ -1,0 +1,77 @@
+- hosts: workers
+  become: yes
+  tasks:
+   - name: Create mongoDB data directory
+     become: yes
+     file:
+       state: directory
+       path: /mnt/data
+
+- hosts: master
+  tasks:
+    - name: get all nodes
+      shell: |
+              kubectl get nodes --no-headers -o custom-columns=':metadata.name'
+      register: k8s_nodes
+
+    - name: Print all nodes. First is controlpane node, second is jobmanager & mongoDB and all others are taskmanagers
+      debug:
+        msg: "{{ k8s_nodes.stdout_lines }}"
+
+    - name: add label to mongoDB node
+      kubernetes.core.k8s:
+        state: patched
+        kind: Node
+        name: "{{ k8s_nodes.stdout_lines[1] }}"
+        definition:
+          metadata:
+            labels:
+              pgf.mongoDB: "yes"
+
+    - name: Setup MongoDB ConfigMap
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../mongoDB/ConfigMap.yaml') | from_yaml }}"
+
+    - name: Setup MongoDB PersistentVolume
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../mongoDB/PersistentVolume.yaml') | from_yaml }}"
+
+    - name: Setup MongoDB PersistentVolumeClaim
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../mongoDB/PersistentVolumeClaim.yaml') | from_yaml }}"
+
+    - name: Setup MongoDB Secret
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../mongoDB/Secret.yaml') | from_yaml }}"
+
+    - name: Setup MongoDB Service
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../mongoDB/Service.yaml') | from_yaml }}"
+
+    - name: Setup MongoDB StatefulSet
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../mongoDB/StatefulSet.yaml') | from_yaml }}"
+
+    - name: Setup MongoDB StorageClass
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../mongoDB/StorageClass.yaml') | from_yaml }}"
+    
+    - name: install mongodb shell
+      become: yes
+      apt:
+        name: mongodb-clients
+        update_cache: yes

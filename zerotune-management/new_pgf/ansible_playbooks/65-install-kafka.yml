@@ -1,0 +1,43 @@
+- hosts: master
+  tasks:
+    - name: add label to kafka producer node
+      kubernetes.core.k8s:
+        state: patched
+        kind: Node
+        name: "{{ hostvars[groups['manager'][0]]['alternative_hostname'] }}"
+        definition:
+          metadata:
+            labels:
+              pgf.kafka: "yes"
+              pgf.kafkaproducer: "yes"
+              pgf.zookeeper: "yes"
+
+    - name: Setup Zookeeper Service
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../kafka/zookeeper-service.yaml') | from_yaml }}"
+
+    - name: Setup Zookeeper Deployment
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../kafka/zookeeper-deployment.yaml') | from_yaml }}"
+
+    - name: Setup Kafka Service
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../kafka/kafka-service.yaml') | from_yaml }}"
+
+    - name: Setup Kafka Deployment
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../kafka/kafka-deployment.yaml') | from_yaml }}"
+
+    - name: Setup Kafka Producer
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../kafka/kafkaproducer-deployment.yaml') | from_yaml }}"

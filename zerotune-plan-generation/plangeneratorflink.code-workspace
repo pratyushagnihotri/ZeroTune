@@ -1,0 +1,32 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"workbench.colorCustomizations": {
+			"activityBar.activeBackground": "#31b54c",
+			"activityBar.activeBorder": "#6a4fcf",
+			"activityBar.background": "#31b54c",
+			"activityBar.foreground": "#15202b",
+			"activityBar.inactiveForeground": "#15202b99",
+			"activityBarBadge.background": "#6a4fcf",
+			"activityBarBadge.foreground": "#e7e7e7",
+			"sash.hoverBorder": "#31b54c",
+			"statusBar.background": "#268d3b",
+			"statusBar.foreground": "#e7e7e7",
+			"statusBarItem.hoverBackground": "#31b54c",
+			"statusBarItem.remoteBackground": "#268d3b",
+			"statusBarItem.remoteForeground": "#e7e7e7",
+			"titleBar.activeBackground": "#268d3b",
+			"titleBar.activeForeground": "#e7e7e7",
+			"titleBar.inactiveBackground": "#268d3b99",
+			"titleBar.inactiveForeground": "#e7e7e799"
+		},
+		"peacock.remoteColor": "#268d3b",
+		"java.dependency.syncWithFolderExplorer": true,
+		"maven.view": "flat",
+		"java.dependency.packagePresentation": "flat"
+	}
+}

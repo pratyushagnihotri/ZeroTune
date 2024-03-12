@@ -1,0 +1,11 @@
+- hosts: localhost
+  tasks:
+    - name: Start local Flink cluster
+      shell: 
+        cmd: "sh ./bin/start-cluster.sh"
+        chdir: "{{ local_main_directory }}/flink-observation/build-target/"
+      register: run_output
+        
+    - name: "Output of Start local Flink cluster"
+      debug:
+        var: run_output

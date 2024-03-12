@@ -1,0 +1,16 @@
+- hosts: localhost
+  tasks:
+    - name: Build PlanGeneratorFlink
+      shell: 
+        cmd: "mvn clean install"
+        chdir: "{{ local_main_directory }}/zerotune-plan-generation"
+      register: build_output
+
+    - name: Copy PlanGeneratorFlink to local Flink Build
+      copy:
+        src: "{{ local_main_directory }}/zerotune-plan-generation/target/plangeneratorflink-1.0-SNAPSHOT.jar"
+        dest: "{{ local_main_directory }}/flink-observation/build-target/lib/plangeneratorflink-1.0-SNAPSHOT.jar"
+        
+    - name: "Output of Build PlanGeneratorFlink"
+      debug:
+        var: build_output

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+namespace: plangeneratorflink-namespace
+metadata:
+  labels:
+    pgf.zookeeper: 'yes'
+  name: zookeeper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pgf.zookeeper: 'yes'
+  template:
+    metadata:
+      labels:
+        pgf.zookeeper: 'yes'
+    spec:
+      containers:
+      - image: bitnami/zookeeper:latest
+        name: zookeeper
+        env:
+          - name: ALLOW_ANONYMOUS_LOGIN
+            value: "yes"
+        ports:
+          - containerPort: 2181
+      restartPolicy: Always

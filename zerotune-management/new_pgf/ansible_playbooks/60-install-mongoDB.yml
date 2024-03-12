@@ -1,0 +1,67 @@
+- hosts: manager
+  become: yes
+  tasks:
+   - name: Create mongoDB data directory
+     file:
+       state: directory
+       path: /mnt/data
+
+- hosts: master
+  tasks:
+    - name: add label to mongoDB node
+      kubernetes.core.k8s:
+        state: patched
+        kind: Node
+        name: "{{ hostvars[groups['manager'][0]]['alternative_hostname'] }}"
+        definition:
+          metadata:
+            labels:
+              pgf.mongoDB: "yes"
+
+    - name: Setup MongoDB ConfigMap
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../mongoDB/ConfigMap.yaml') | from_yaml }}"
+
+    - name: Setup MongoDB PersistentVolume
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../mongoDB/PersistentVolume.yaml') | from_yaml }}"
+
+    - name: Setup MongoDB PersistentVolumeClaim
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../mongoDB/PersistentVolumeClaim.yaml') | from_yaml }}"
+
+    - name: Setup MongoDB Secret
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../mongoDB/Secret.yaml') | from_yaml }}"
+
+    - name: Setup MongoDB Service
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../mongoDB/Service.yaml') | from_yaml }}"
+
+    - name: Setup MongoDB StatefulSet
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../mongoDB/StatefulSet.yaml') | from_yaml }}"
+
+    - name: Setup MongoDB StorageClass
+      kubernetes.core.k8s:
+        state: present
+        namespace: plangeneratorflink-namespace
+        definition: "{{ lookup('file', '../mongoDB/StorageClass.yaml') | from_yaml }}"
+    
+    - name: install mongodb shell
+      become: yes
+      apt:
+        name: mongodb-clients
+        update_cache: yes

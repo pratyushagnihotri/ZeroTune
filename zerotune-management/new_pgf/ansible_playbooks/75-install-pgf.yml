@@ -1,0 +1,11 @@
+- hosts: masters
+  tasks:
+      - name: If necessary delete already existing PlanGeneratorFlink file
+      file:
+        state: absent
+        path: /users/{{ansible_user}}/flink/lib/plangeneratorflink-1.0-SNAPSHOT.jar
+
+    - name: Copy PlanGeneratorFlink to master node
+      synchronize:
+        src: local_main_directory/zerotune-plan-generation/target/plangeneratorflink-1.0-SNAPSHOT.jar
+        dest: /users/{{ansible_user}}/flink/lib/

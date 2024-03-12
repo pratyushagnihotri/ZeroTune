@@ -1,0 +1,11 @@
+- hosts: masters
+  tasks:
+    - name: If necessary delete already existing flink directory
+      file:
+        state: absent
+        path: /users/{{ansible_user}}/flink/
+
+    - name: Copy flink source to master node
+      synchronize:
+        src: {{local_main_directory}}/flink-observation/build-target/
+        dest: /users/{{ansible_user}}/flink

@@ -1,0 +1,80 @@
+- hosts: masters
+  tasks:
+    - name: Create plangeneratorflink-namespace
+      kubernetes.core.k8s:
+        name: plangeneratorflink-namespace
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Create flink-service-account
+      kubernetes.core.k8s:
+        name: flink-service-account
+        api_version: v1
+        kind: ServiceAccount
+        namespace: plangeneratorflink-namespace
+        state: present
+
+    - name: Create flink-role-binding
+      kubernetes.core.k8s:
+        name: flink-role-binding-flink
+        api_version: v1
+        kind: ClusterRoleBinding
+        namespace: plangeneratorflink-namespace
+        state: present
+        definition:
+          subjects:
+            - kind: ServiceAccount
+              name: flink-service-account
+              namespace: plangeneratorflink-namespace
+          roleRef:
+            name: edit
+            kind: ClusterRole
+
+    - name: Create docker hub secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          type: kubernetes.io/dockerconfigjson
+          metadata:
+            name: regcred
+            namespace: plangeneratorflink-namespace
+          data:
+            .dockerconfigjson: "{{regcred}}"
+
+    - name: Create pgf-results directory
+      file:
+        path: ~/pgf-results
+        state: directory
+
+    # - name: get all nodes
+    #   shell: |
+    #           kubectl get nodes --no-headers -o custom-columns=':metadata.name'
+    #   register: k8s_nodes
+
+    # - name: Print all nodes. First is controlpane node, second is jobmanager & mongoDB and all others are taskmanagers
+    #   debug:
+    #     msg: "{{ k8s_nodes.stdout_lines }}"
+
+    - name: add label to jobmanager node
+      kubernetes.core.k8s:
+        state: patched
+        kind: Node
+        name: "{{ hostvars[groups['manager'][0]]['alternative_hostname'] }}"
+        definition:
+          metadata:
+            labels:
+              pgf.type: jm
+
+    - name: add label to designated taskmanager nodes
+      kubernetes.core.k8s:
+        state: patched
+        kind: Node
+        name: "{{ item['alternative_hostname'] }}"
+        definition:
+          metadata:
+            labels:
+              pgf.type: tm
+      loop: "{{ hostvars[groups['taskmanager']] }}"

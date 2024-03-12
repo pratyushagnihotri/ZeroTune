@@ -1,0 +1,21 @@
+- hosts: localhost
+  tasks:
+    - name: Build Apache Flink
+      shell: 
+        cmd: "mvn clean install -DskipTests{{ flink_build_arguments }}"
+        chdir: "{{ local_main_directory }}/flink-observation"
+      register: build_output
+    
+    - name: Adapt Apache Flink configuration for local usage
+      when: adapt_flink_for_local_usage == 'yes'
+      shell: |
+        echo 'env.java.opts.taskmanager: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -Dlog4j.debug"' >> conf/flink-conf.yaml
+        sed -i 's/.*taskmanager.numberOfTaskSlots: 1.*/taskmanager.numberOfTaskSlots: 30/' conf/flink-conf.yaml
+        sed -i 's/.*rest.bind-address: localhost.*/rest.bind-address: 0.0.0.0/' conf/flink-conf.yaml
+        sed -i 's/.*taskmanager.memory.process.size: 1728m.*/taskmanager.memory.process.size: 2500m/' conf/flink-conf.yaml
+      args:
+        chdir: "{{ local_main_directory }}/flink-observation/build-target"
+
+    - name: "Output of Build Apache Flink"
+      debug:
+        var: build_output

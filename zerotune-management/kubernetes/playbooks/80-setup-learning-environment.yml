@@ -1,0 +1,129 @@
+- hosts: learning
+  tasks:
+    - name: add lazygit repo
+      become: yes
+      apt_repository:
+        repo: ppa:lazygit-team/release
+
+    - name: Update repositories
+      become: yes
+      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+
+    - name: Upgrade packages
+      become: yes
+      apt: upgrade=dist force_apt_get=yes
+
+    - name: Check if reboots are needed
+      become: yes
+      register: reboot_required_file
+      stat: path=/var/run/reboot-required get_md5=no
+
+    - name: Reboot the box if kernel updated
+      become: yes
+      reboot:
+        msg: "Reboot initiated by Ansible"
+        connect_timeout: 10
+        reboot_timeout: 500
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+        test_command: uptime
+      when: reboot_required_file.stat.exists
+
+    - name: install python3-pip, mc, htop, lazygit
+      become: yes
+      apt:
+        name:
+          - python3-pip
+          - mc
+          - htop
+          - lazygit
+        update_cache: yes
+
+    - name: create mount point for ZeroTune
+      become: yes
+      file:
+        path: /mnt/ZeroTune
+        state: directory
+        mode: 0777
+
+    - name: run mkextrafs.pl script to create cloudlab storage
+      become: yes
+      shell: /usr/local/etc/emulab/mkextrafs.pl -f /mnt/ZeroTune
+
+    - name: chown ZeroTune directory to current user
+      become: yes
+      file:
+        path: /mnt/ZeroTune
+        state: directory
+        mode: 0777
+        owner: "{{ ansible_effective_user_id }}"
+        group: "{{ ansible_effective_group_id }}"
+
+    - name: set git to store credentials in memory
+      become: yes
+      git_config:
+        name: credential.helper
+        value: store
+
+    - name: Git checkout zerotune-learning
+      git:
+        repo: "https://{{ githubUsername }}:{{ githubAccessToken }}@github.com/zerotune/ZeroTune"
+        dest: /mnt/ZeroTune/zerotune-learning
+
+    - name: Git checkout zerotune-experiments
+      git:
+        repo: "https://{{ githubUsername }}:{{ githubAccessToken }}@github.com/zerotune/zerotune-experiments"
+        dest: /mnt/ZeroTune/zerotune-experiments
+
+    - name: Extract graphviz
+      unarchive:
+        src: /mnt/ZeroTune/zerotune-learning/flink_learning/graphviz-7.1.0_modded.tar.gz
+        dest: /mnt/ZeroTune/zerotune-learning/flink_learning/
+        remote_src: yes
+
+    - name: run ./configure to configure graphviz
+      shell:
+        chdir: /mnt/ZeroTune/zerotune-learning/flink_learning/graphviz-7.1.0
+        cmd: ./configure
+
+    - name: Build graphviz
+      make:
+        chdir: /mnt/ZeroTune/zerotune-learning/flink_learning/graphviz-7.1.0
+
+    - name: Install graphviz
+      make:
+        chdir: /mnt/ZeroTune/zerotune-learning/flink_learning/graphviz-7.1.0
+        target: install
+      become: yes
+
+    - name: Install python requirements for flink-learning
+      pip:
+        requirements: /mnt/ZeroTune/zerotune-learning/flink_learning/requirements.txt
+
+    - name: Delete training statistics set
+      file:
+        path: /mnt/ZeroTune/zerotune-experiments/actual_used_training_sets/{{ training_set }}/training_data/statistics-{{ training_metric }}.json
+        state: absent
+      when: training_delete_existing == "true"
+
+    - name: Delete training model set
+      file:
+        path: /mnt/ZeroTune/zerotune-experiments/actual_used_training_sets/{{ training_set }}/training_data/models/model/model-{{ training_metric }}.*
+        state: absent
+      when: training_delete_existing == "true"
+
+    - name: Delete training datasets
+      file:
+        path: /mnt/ZeroTune/zerotune-experiments/actual_used_training_sets/{{ training_set }}/training_data/datasets/.*{{ training_metric }}.*
+        state: absent
+      when: training_delete_existing == "true"
+
+    - name: Print train command (with joins)
+      debug:
+        msg: "Setup completed. Start training with: cd /mnt/ZeroTune/zerotune-learning/flink_learning/ && export PYTHONPATH=${PYTHONPATH}:$(pwd) && python3 main.py --training_data /mnt/ZeroTune/zerotune-experiments/actual_used_training_sets/{{ training_set }}/training_data --mode train --metric {{ training_metric }}"
+      when: training_no_joins == "false"
+    
+    - name: Print train command (no joins)
+      debug:
+        msg: "Setup completed. Start training with: cd /mnt/ZeroTune/zerotune-learning/flink_learning/ && export PYTHONPATH=${PYTHONPATH}:$(pwd) && python3 main.py --training_data /mnt/ZeroTune/zerotune-experiments/actual_used_training_sets/{{ training_set }}/training_data --mode train --metric {{ training_metric }} --no_joins"
+      when: training_no_joins == "true"

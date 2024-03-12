@@ -1,0 +1,9 @@
+---
+- import_playbook: playbooks/10-install-k8s.yml
+- import_playbook: playbooks/20-setup-master.yml
+- import_playbook: playbooks/30-setup-workers.yml
+- import_playbook: playbooks/40-setup-pgf.yml
+- import_playbook: playbooks/50-install-k8s-dashboard.yml
+- import_playbook: playbooks/60-install-mongoDB.yml
+#- import_playbook: playbooks/65-install-kafka.yml
+- import_playbook: playbooks/70-install-flink-cluster.yml

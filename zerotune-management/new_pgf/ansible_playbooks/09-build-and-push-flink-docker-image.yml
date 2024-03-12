@@ -1,0 +1,88 @@
+- hosts: localhost
+  tasks:
+    - name: Remove Flink-Docker repository
+      file:
+        state: absent
+        path: "{{local_main_directory}}/flink-docker"
+
+    - name: Git checkout Flink-Docker repository
+      git:
+        repo: 'https://github.com/apache/flink-docker.git'
+        dest: "{{local_main_directory}}"
+        version: {{ flink_docker_branch_name }}
+
+    - name: Create archive of Flink build
+      shell: 
+        cmd: "tar czf {{ docker_image_name }}.tgz ."
+        chdir: "{{ local_main_directory }}/flink-observation/build-target/"
+
+    - name: copies Flink build into Flink-Docker repository
+      copy:
+        src: "{{ local_main_directory }}/flink-observation/build-target/{{ docker_image_name }}.tgz"
+        dest: "{{ local_main_directory }}/flink-docker"
+
+    - name: Stop flinkimagehoster container
+      community.docker.docker_container:
+        name: flinkimagehoster
+        state: stopped
+
+    - name: Remove flinkimagehoster container
+      community.docker.docker_container:
+        name: flinkimagehoster
+        state: absent
+
+    - name: Delete flinkimagehoster related network fih-network
+      community.docker.docker_network:
+        name: fih-network
+        state: absent
+        force: true        
+
+    - name: Create flinkimagehoster related network fih-network
+      community.docker.docker_network:
+        name: fih-network
+
+    - name: Create a data container
+      community.docker.docker_container:
+        name: flinkimagehoster
+        image: python:3.7.7-slim-buster
+        networks:
+          - name: fih-network
+        ports:
+          - "9999:9999"
+        volumes:
+          - "{{ local_main_directory }}/flink-docker:/data"
+        command: "python -m http.server 9999"
+
+    - name: Add Flink build to Flink-Docker Dockerfile
+      shell: 
+        cmd: "./add-custom.sh -u http://flinkimagehoster:9999/data/{{ docker_image_name }}.tgz -n {{ docker_image_name }} -j 11"
+        chdir: "{{ local_main_directory }}/flink-docker"
+
+    - name: Log into registry
+      community.docker.docker_login:
+        registry_url: "{{ registry_url }}"
+        username: "{{ registry_username }}"
+        password: "{{ registry_read_write_key }}"
+        reauthorize: true
+
+    - name: Build flink docker image and push to registry
+      community.docker.docker_image:
+        build:
+          path: "{{ local_main_directory }}/flink-docker/dev/{{ docker_image_name }}-ubuntu"
+          nocache: true
+          network: fih-network
+      name: "{{ registry_url }}/{{ docker_image_name }}"
+      tag: "{{ docker_image_tag }}"
+      push: true
+      source: build
+ 
+    - name: Stop flinkimagehoster container
+      community.docker.docker_container:
+        name: flinkimagehoster
+        state: stopped
+
+    - name: Remove flinkimagehoster container
+      community.docker.docker_container:
+        name: flinkimagehoster
+        state: absent
+    

@@ -1,0 +1,17 @@
+- hosts: manager
+  tasks:
+    - name: Clean result directory
+      file:
+        state: absent
+        path: ~/pgf-results
+
+    - name: Create result directory
+      file:
+        state: directory
+        path: ~/pgf-results
+
+- hosts: masters
+  tasks:
+    - name: run PlanGeneratorFlink
+      shell: |
+              ~/flink/bin/flink run --target kubernetes-session -Dkubernetes.cluster-id=plangeneratorflink-cluster -Dkubernetes.namespace=plangeneratorflink-namespace -Dkubernetes.rest-service.exposed.type=NodePort ~//flink/lib/plangeneratorflink-1.0-SNAPSHOT.jar --logdir ~/pgf-results --environment kubernetes {{ pgf_runtime_parameter }}

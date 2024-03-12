@@ -1,0 +1,6 @@
+.idea/*
+__pycache__*
+*.pyc
+training_data*
+test_data*
+window_exp_*
